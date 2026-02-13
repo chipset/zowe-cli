@@ -595,14 +595,17 @@ export class ProfileInfo {
             let realBaseProfileName: string;
             let layerProperties: IConfig;
             if (osLoc?.global) {
-                layerProperties = this.mLoadedConfig.findLayer(osLoc.user, osLoc.global)?.properties;
-                realBaseProfileName = layerProperties?.defaults.base;
-                if (!realBaseProfileName && osLoc.user) {
-                    layerProperties = this.mLoadedConfig.findLayer(false, osLoc.global)?.properties;
-                    realBaseProfileName = layerProperties?.defaults.base;
-                }
-                if (realBaseProfileName && !this.mLoadedConfig.api.profiles.exists(realBaseProfileName)) {
-                    realBaseProfileName = null;
+                const candidateLayers = [
+                    this.mLoadedConfig.findLayer(osLoc.user, osLoc.global),
+                    this.mLoadedConfig.findLayer(!osLoc.user, osLoc.global)
+                ];
+                for (const layer of candidateLayers) {
+                    const candidateBase = layer?.properties?.defaults?.base;
+                    if (candidateBase && this.mLoadedConfig.api.profiles.exists(candidateBase)) {
+                        layerProperties = layer.properties;
+                        realBaseProfileName = candidateBase;
+                        break;
+                    }
                 }
                 if (realBaseProfileName) baseProfile = this.mLoadedConfig.api.profiles.buildProfile(realBaseProfileName, layerProperties?.profiles);
                 else baseProfile = null;
